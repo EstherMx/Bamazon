@@ -1,107 +1,87 @@
-
 var mysql = require("mysql");
 var inquirer = require("inquirer");
+var Table = require('cli-table');
 
 var connection = mysql.createConnection({
-  host: "localhost",
-  port: 3306,
-  user: "root",
-  password: "forever",
-  database: "Bamazon"
-});
+    host: "localhost",
+    port: 3306,
+    user: "root",
+    password: "forever",
+    database: "Bamazon"
+})
 
 connection.connect(function(err) {
   if (err) throw err;
-  runSearch();
+  console.log("");
+  showTable();
+  })
+
+
+var showTable = function() {
+    connection.query("SELECT * FROM products", function(err, res) {
+        if (err) throw err;
+        for (var i = 0; i < res.length; i++) {
+            console.log(" itemId: " + res[i].item_id + " || product: " + res[i].product_name + " || department: " + res[i].department_name + " || price: " + res[i].price + "|| quantity: " + res[i].stock_quantity);
+
+        }
+    });
+}
+
+
+var selectProduct = function() {
+inquirer.prompt([
+
+  // Here we create a basic text prompt.
+  {
+    type: "input",
+    message: "What is the ID of the product you would like to buy?",
+    name: "id"
+  },
+  {
+    type: "input",
+    message: "How many units of the product you would like to buy?",
+    name: "units"
+  }
+
+]).then(function(user) {
+    
+    var the_index = user.id - 1;
+
+connection.query("SELECT * FROM products", function(err, res) {
+  if (err) throw err;
+  var parse_stock = parseInt(res[the_index].stock_quantity);
+   var parse_userUnits = parseInt (user.units);
+   var quantity_left = parse_stock - parse_userUnits;
+  var total_cost = res[the_index].price * user.units;
+  var sales= res[the_index].product_sales + total_cost;
+  
+  if (parse_stock >= parse_userUnits){
+    connection.query('UPDATE products SET ? WHERE ?', [{
+        stock_quantity: quantity_left
+    },{
+        item_id: user.id
+    }], function(err, res) {
+        
+        console.log('Your order was successfully processed! The cost of your purchase is'
+         + " " + "$"+ total_cost );
+    })
+    connection.query('UPDATE products SET ? WHERE ?', [{
+        product_sales: sales
+    },{
+        item_id: user.id
+    }], function(err, res) {
+    })
+
+  }
+  else{
+    console.log('Insufficient quantity!');
+    console.log('Please, place another order.');
+    selectProduct();
+  }
 });
+ 
 
-
- // TODO: RUN AND DISPLAY ALL THE ITEMS AVAILABLE
-function showTable(ViewTable){
-  var table = new Table({
-    head: ['item_id', 'product_name', 'department_name', 'price', 'stock_quantity', 'description']
-  });
-  connection.query('SELECT * FROM products', function(err, res){
-    if(err) throw err;
-    for (var i =0; i<res.length; i++){
-      table.push([res[i].item_id, res[i].product_name, res[i].department_name, '$'+res[i].price.toFixed(2), res[i].stock_quantity, res[i].description]);
-    }
-    //-----                                                                                                                                                                             
-    console.log(table.toString());
-    //----                                                                                                                                                                              
-    if (ViewTable != undefined) {
-      ViewTable();
-    }
-    //userPrompts();                                                                                                                                                                    
-  });
-}
-
-var runSearch = function() {
-   inquirer.prompt({
-    name: "item_id",
-    type: "input",
-    message: "What's the ID of the product you would like to buy?"
-  }).then(function(answer) {
-    console.log(answer.item_id);
-    connection.query("SELECT * FROM products WHERE ?", { item_id: answer.item_id }, function(err, res) {
-      console.log( " item_id: " + res[0].item_id + " || product: "
-        + res[0].product_name + " || department: " + res[0].department_name  + " || price: " + res[0].price  + " || stock_quantity : " + res[0].stock_quantity);
-      runSearch();
-    });
-  });
+});
 };
+selectProduct();
 
-var runSearch = function() {
-   inquirer.prompt({
-    name: "quantity",
-    type: "input",
-    message: "How many units of the product you would like to buy?"
-  }).then(function(answer) {
-    console.log(answer.);
-    connection.query("SELECT * FROM products WHERE ?", { item_id: answer.item_id }, function(err, res) {
-      console.log( " item_id: " + res[0].item_id + " || product: "
-        + res[0].product_name + " || department: " + res[0].department_name  + " || price: " + res[0].price  + " || stock_quantity : " + res[0].stock_quantity);
-      runSearch();
-    });
-  });
-};
-
-
-      
-// item_item_id INTEGER(10) NOT NULL auto_increment,
-// product_name varchar(20) not null,
-// department_name varchar(20) not null,
-// price decimal (5,2) not null,
-// stock_quantity      
-   
-
-
-
-
-
-
-
-
-
-
-
-
-//-------------------------For the table to be viewed by the user-----------------------//                                                                                              
-function showTable(ViewTable){
-  var table = new Table({
-    head: ['item_item_id', 'product_name', 'department_name', 'price', 'stock_quantity', 'description']
-  });
-  connection.query('SELECT * FROM products', function(err, res){
-    if(err) throw err;
-    for (var i =0; i<res.length; i++){
-      table.push([res[i].item_item_id, res[i].product_name, res[i].department_name, '$'+res[i].price.toFixed(2), res[i].stock_quantity, res[i].description]);
-    }
-    //-----                                                                                                                                                                             
-    console.log(table.toString());
-    //----                                                                                                                                                                              
-    if (ViewTable != undefined) {
-      ViewTable();
-    }
-    //userPrompts();                                                                                                                                                                    
-  });
-}
